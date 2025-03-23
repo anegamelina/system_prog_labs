@@ -17,9 +17,9 @@ typedef struct User{
     int sanctions;
 }User;
 
-int check_user_exist(User **users, int count, char *login, int pin);
+int check_user_exist(User **users, int count, char *login, unsigned int pin);
 
-error register_user(User **users, int *count, char *login, int pin);
+error register_user(User **users, int *count, char *login, unsigned int pin);
 
 error load_users(User **users, int *count, int *size); // загрузка пользователей из файла в массив
 
@@ -43,7 +43,6 @@ int main(){
     char login[7], action[20];
     unsigned int pin;
     error check;
-    int number;
 
     users = (User *) malloc(sizeof(User));
     if(!users){
@@ -89,8 +88,8 @@ int main(){
                         break;
                     }
                     printf("Enter your PIN-code: ");
-                    while(scanf("%u", &pin) != 1){
-                        printf("Incorrect PIN-code input. Please enter a valid PIN-code:\n");
+                    while(scanf("%u", &pin) != 1 || pin > 100000){
+                        printf("PIN-code must be a number in [0, 100000]. Please try again:\n");
                         while(getchar() != '\n');
                     }
                     is_logged_in = check_user_exist(&users, users_count, login, pin);
@@ -119,8 +118,8 @@ int main(){
                         break;
                     }
                     printf("Create a PIN-code (from 0 to 100000): ");
-                    while(scanf("%u", &pin) != 1 || pin < 0 || pin > 100000){
-                        printf("PIN-code must be a number in [0, 100000]. Please try again:");
+                    while(scanf("%u", &pin) != 1 || pin > 100000){
+                        printf("PIN-code must be a number in [0, 100000]. Please try again:\n");
                         while(getchar() != '\n');
                     }
                     check = register_user(&users, &users_count, login, pin); // регистрация пользователя
@@ -226,7 +225,7 @@ int main(){
     return OK;
 }
 
-int check_user_exist(User **users, int count, char *login, int pin){ // проверка на корректность данных при авторизации
+int check_user_exist(User **users, int count, char *login, unsigned int pin){ // проверка на корректность данных при авторизации
     int i;
     for(i = 0; i < count; ++i){
         if(strcmp((*users)[i].login, login) == 0 && (*users)[i].pin == pin)
@@ -266,7 +265,7 @@ error load_users(User **users, int *count, int *size){ // загрузка по�
     return OK;
 }
 
-error register_user(User **users, int *count, char *login, int pin){ // регистрация нового пользователя
+error register_user(User **users, int *count, char *login, unsigned int pin){ // регистрация нового пользователя
     int i;
     User *temp = NULL;
     for(i = 0; i < *count; ++i){
