@@ -31,16 +31,14 @@ void print_date();
 
 void print_howmuch(const char *time_str, char *flag);
 
-int sanctions(User *users, int user_count, const char *username, int number);
+int sanctions(User *users, int user_count, const char *username, int number, int *sanctions_count);
 
-int is_valid_login(const char *login);
-
-int is_login_correct(const char *login);
+error is_login_correct(const char *login); // проверка на корректность введенного логина
 
 int main(){
     User *users = NULL;
     int user_choice = 0, is_logged_in = -1, sanctions_count = 1, users_count = 0, size = 1;
-    char login[7], action[20];
+    char login[7] = {}, action[20];
     unsigned int pin;
     error check;
 
@@ -64,7 +62,7 @@ int main(){
     }
 
     while(1) {
-        if(is_logged_in == -1) {
+        if(is_logged_in == -1) { // если не вошли в акк
             printf("Choose the action: 1 - authorize, 2 - register, 3 - exit\n");
             while(scanf("%d", &user_choice) != 1 || user_choice < 1 || user_choice > 3){
                 printf("Incorrect action input. Please choose 1, 2, or 3.\n");
@@ -79,9 +77,15 @@ int main(){
                             while(getchar() != '\n');
                             continue;
                         }
+                        if(login[6] != '\0'){
+                            printf("Incorrect input. The length of login can't be more that 6 symbols. Please try again:\n");
+                            login[6] = '\0';
+                            while(getchar() != '\n');
+                            continue;
+                        }
 
-                        if (!is_login_correct(login)) {
-                            printf("Login must be up to 6 characters and contain at least one letter and one digit. Please try again:\n");
+                        if (is_login_correct(login) == INPUT_ERROR) {
+                            printf("Login must be up to 6 characters and contain only letters and digits. Please try again:\n");
                             while(getchar() != '\n');
                             continue;
                         }
@@ -102,7 +106,7 @@ int main(){
                     break;
 
                 case 2:
-                    printf("Create a username (up to 6 characters, must contain at least one letter and one digit): ");
+                    printf("Create a username (up to 6 characters, must contain only letters and digits.): ");
                     while(1) {
                         if (scanf("%7s", login) != 1) {
                             printf("Incorrect input. Please try again:\n");
@@ -110,8 +114,15 @@ int main(){
                             continue;
                         }
 
-                        if (!is_login_correct(login)) {
-                            printf("Login must be up to 6 characters and contain at least one letter and one digit. Please try again:\n");
+                        if(login[6] != '\0'){
+                            printf("Incorrect input. The length of login can't be more that 6 symbols. Please try again:\n");
+                            login[6] = '\0';
+                            while(getchar() != '\n');
+                            continue;
+                        }
+
+                        if (is_login_correct(login) == INPUT_ERROR) {
+                            printf("Login must be up to 6 characters and contain only letters and digits. Please try again:\n");
                             while(getchar() != '\n');
                             continue;
                         }
@@ -126,8 +137,7 @@ int main(){
 
                     if(check == INPUT_ERROR){
                         printf("User with this login already exists.\n");
-                        free(users);
-                        return INPUT_ERROR;
+                        continue;
                     }
                     else if(check == MEMORY_ERROR){
                         printf("Problems with memory.\n");
@@ -158,7 +168,8 @@ int main(){
                     printf("You have reached the limit of sanctions for this user.\n");
                     is_logged_in = -1;
                     continue;
-                }
+            }
+            printf("\n");
             printf("Choose the action:\n");
             printf("Time - current time in format hh:mm:ss\n");
             printf("Date - current date in format dd.mm.yyyy\n");
@@ -200,7 +211,7 @@ int main(){
                     scanf("%d", &confirmation_code);
 
                     if (confirmation_code == 12345) {
-                        if (sanctions(users, users_count, username, num)) {
+                        if (sanctions(users, users_count, username, num, &sanctions_count)) {
                             printf("Sanctions applied to user %s. Limit: %d requests per session.\n", username,
                                    num);
                         } else {
@@ -218,7 +229,9 @@ int main(){
                 printf("There is no such action.\n");
             }
 
-            printf("Remaining requests: %d\n", sanctions_count);
+            if(sanctions_count > 0){
+                printf("Remaining requests: %d\n", sanctions_count);
+            }
         }
     }
     free(users);
@@ -244,7 +257,7 @@ error load_users(User **users, int *count, int *size){ // загрузка по�
     if(!file)
         return FILE_ERROR;
 
-    while(fscanf(file, "%6s %u %d", login, &pin, &sanctions) == 3){
+    while(fscanf(file, "%7s %u %d", login, &pin, &sanctions) == 3){
         if(*size == *count) {
             *size *= 2;
             temp = (User *) realloc(*users, (*size) * sizeof(User));
@@ -303,33 +316,16 @@ error save_users(User **users, int count){
     return OK;
 }
 
-int is_valid_login(const char *login) {
-    int has_letter = 0;
-    int has_digit = 0;
-
+error is_login_correct(const char *login) {
+    if (strlen(login) > 6) {
+        return INPUT_ERROR;
+    }
     for (int i = 0; login[i] != '\0'; i++) {
         if (!isalnum(login[i])) {
-            return 0;
-        }
-        if (isalpha(login[i])) {
-            has_letter = 1;
-        }
-        if (isdigit(login[i])) {
-            has_digit = 1;
+            return INPUT_ERROR;
         }
     }
-
-    return has_letter && has_digit;
-}
-
-int is_login_correct(const char *login) {
-    if (strlen(login) > 6) {
-        return 0;
-    }
-    if (!is_valid_login(login)) {
-        return 0;
-    }
-    return 1;
+    return OK;
 }
 
 void print_time(){ // запрос текущего времени в стандартном формате чч:мм:сс
@@ -406,11 +402,12 @@ void print_howmuch(const char *time_str, char *flag){ // запрос проше
     }
 }
 
-int sanctions(User *users, int user_count, const char *username, int number) { // санкции
+int sanctions(User *users, int user_count, const char *username, int number, int *sanctions_count) { // санкции
     for (int i = 0; i < user_count; i++) {
         if (strcmp(users[i].login, username) == 0) {
             users[i].sanctions = number;
             save_users(&users, user_count);
+            *sanctions_count = number;
             return 1;
         }
     }
