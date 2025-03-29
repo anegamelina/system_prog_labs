@@ -98,7 +98,7 @@ error make_list_files(char *directory, file_info **files, int *num, int *size){
         }
 
         snprintf(filepath, sizeof(filepath), "%s/%s", directory, entry->d_name);
-        if (stat(filepath, &file_stat) == -1) {
+        if (lstat(filepath, &file_stat) == -1) {
             return STAT_ERROR;
         }
 
