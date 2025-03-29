@@ -18,7 +18,7 @@ typedef struct file_info{
     char *name;
     char type[16];
     unsigned long inode;
-    unsigned long first_block;
+    unsigned long blocks;
 }file_info;
 
 error make_list_files(char *directory, file_info **files, int *num, int *size);
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]){
 
         else{
             for(; j < num_of_files; ++j){
-                printf("%s%-15s | Inode: %-8lu | First block: %-8lu\n", files[j].name, files[j].type, files[j].inode, files[j].first_block);
+                printf("%s%-15s | Inode: %-8lu | Blocks: %-8lu\n", files[j].name, files[j].type, files[j].inode, files[j].blocks);
             }
         }
     }
@@ -121,7 +121,7 @@ error make_list_files(char *directory, file_info **files, int *num, int *size){
         }
 
         (*files)[*num].inode = file_stat.st_ino;
-        (*files)[*num].first_block = file_stat.st_blocks;
+        (*files)[*num].blocks = file_stat.st_blocks;
 
         ++(*num);
     }
